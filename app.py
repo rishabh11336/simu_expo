@@ -177,7 +177,7 @@ if event_simulation_mode == "Individual Events":
             with cols[2]:
                 downside = st.number_input("Downside", value=float(base_case_val), key=f"down_{i}", label_visibility="collapsed")
             with cols[3]:
-                st.markdown(f"<div style='text-align:center; padding: 8px; background-color: #f8f9fa; border-radius: 4px;'>{base_case_val:.3f}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align:center; padding: 8px; background-color: #f8f9fa; border-radius: 4px;'>{base_case_val:.2f}</div>", unsafe_allow_html=True)
             with cols[4]:
                 upside = st.number_input("Upside", value=float(base_case_val), key=f"up_{i}", label_visibility="collapsed")
         event_params.append({'downside': float(downside), 'upside': float(upside), 'dist_type': dist_type, 'base_case': base_case_val})
@@ -193,7 +193,7 @@ else:  # Consolidated Events
         with cols[2]:
             consolidated_downside = st.number_input("Downside", value=float(base_event_factors), key="consolidated_down", label_visibility="collapsed")
         with cols[3]:
-            st.markdown(f"<div style='text-align:center; padding: 8px; background-color: #f8f9fa; border-radius: 4px;'>{base_event_factors:.3f}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center; padding: 8px; background-color: #f8f9fa; border-radius: 4px;'>{base_event_factors:.2f}</div>", unsafe_allow_html=True)
         with cols[4]:
             consolidated_upside = st.number_input("Upside", value=float(base_event_factors), key="consolidated_up", label_visibility="collapsed")
     
@@ -226,7 +226,7 @@ def styled_param_row(label, base_case_val, default_down, default_up, dist_key, d
         with cols[2]:
             downside = st.number_input("Downside", value=float(base_case_val), key=down_key, label_visibility="collapsed", step=step)
         with cols[3]:
-            st.markdown(f"<div style='text-align:center; padding: 8px; background-color: #f8f9fa; border-radius: 4px;'>{base_case_val:.3f}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center; padding: 8px; background-color: #f8f9fa; border-radius: 4px;'>{base_case_val:.2f}</div>", unsafe_allow_html=True)
         with cols[4]:
             upside = st.number_input("Upside", value=float(base_case_val), key=up_key, label_visibility="collapsed", step=step)
     return {'downside': float(downside), 'upside': float(upside), 'dist_type': dist_type, 'base_case': base_case_val}
