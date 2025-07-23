@@ -121,7 +121,6 @@ st.markdown("""
 }
 .param-table th, .param-table td {
     border: 1px solid #ddd;
-    padding: 8px;
     text-align: center;
 }
 .param-table th {
@@ -131,7 +130,6 @@ st.markdown("""
 .event-row {
     display: flex;
     align-items: center;
-    padding: 5px 0;
     border-bottom: 1px solid #eee;
 }
 .event-label {
@@ -179,7 +177,7 @@ if event_simulation_mode == "Individual Events":
             with cols[2]:
                 downside = st.number_input("Downside", value=float(base_case_val), key=f"down_{i}", label_visibility="collapsed")
             with cols[3]:
-                st.markdown(f"<div style='text-align:center; padding: 10px; background-color: #f8f9fa; border-radius: 4px; margin: 5px 0;'>{base_case_val:.3f}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align:center; padding: 8px; background-color: #f8f9fa; border-radius: 4px;'>{base_case_val:.3f}</div>", unsafe_allow_html=True)
             with cols[4]:
                 upside = st.number_input("Upside", value=float(base_case_val), key=f"up_{i}", label_visibility="collapsed")
         event_params.append({'downside': float(downside), 'upside': float(upside), 'dist_type': dist_type, 'base_case': base_case_val})
