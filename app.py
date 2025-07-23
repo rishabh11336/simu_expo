@@ -16,7 +16,7 @@ print(row)
 def sample_from_distribution(dist_type, low=None, high=None, mean=None, std=None, left=None, mode=None, right=None):
     # Helper to check if all args are finite
     def all_finite(*args):
-        return all(np.isfinite(x) for x in args)
+        return all(x is not None and np.isfinite(x) for x in args)
 
     if dist_type == 'uniform':
         if not all_finite(low, high):
