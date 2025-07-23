@@ -193,7 +193,7 @@ else:  # Consolidated Events
         with cols[2]:
             consolidated_downside = st.number_input("Downside", value=float(base_event_factors), key="consolidated_down", label_visibility="collapsed")
         with cols[3]:
-            st.markdown(f"<div style='text-align:center; padding: 10px; background-color: #f8f9fa; border-radius: 4px; margin: 5px 0;'>{base_event_factors:.3f}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center; padding: 8px; background-color: #f8f9fa; border-radius: 4px;'>{base_event_factors:.3f}</div>", unsafe_allow_html=True)
         with cols[4]:
             consolidated_upside = st.number_input("Upside", value=float(base_event_factors), key="consolidated_up", label_visibility="collapsed")
     
