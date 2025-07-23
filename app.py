@@ -101,6 +101,14 @@ n_simulations = st.selectbox(
     index=1
 )
 
+# Toggle for event simulation level
+event_simulation_mode = st.radio(
+    "Event Simulation Mode:",
+    options=["Individual Events", "Consolidated Events"],
+    index=0,
+    help="Individual: Simulate each of 15 events separately. Consolidated: Simulate all events as one combined factor."
+)
+
 st.header("Event Factors (Event1 - Event15)")
 
 # Create a table-like structure with proper styling
@@ -131,6 +139,15 @@ st.markdown("""
     font-weight: bold;
     color: #666;
 }
+
+/* Style for input fields to make them distinct */
+.stNumberInput > div > div > input {
+    background-color: #e3f2fd !important
+}
+
+.stSelectbox > div > div > div {
+    background-color: #e8f5e8 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -150,23 +167,40 @@ st.markdown("""
 event_params = []
 distribution_options = ['uniform', 'normal', 'triangular', 'lognormal']
 
+if event_simulation_mode == "Individual Events":
+    for i in range(1, 16):
+        base_case_val = clean_number(row.get(f'Event{i}', 0.0))
+        with st.container():
+            cols = st.columns([1, 1.5, 1.5, 1, 1.5])
+            with cols[0]:
+                st.markdown(f"<div class='event-label'>Event {i}</div>", unsafe_allow_html=True)
+            with cols[1]:
+                dist_type = st.selectbox("Distribution", distribution_options, key=f"dist_{i}", label_visibility="collapsed")
+            with cols[2]:
+                downside = st.number_input("Downside", value=float(base_case_val), key=f"down_{i}", label_visibility="collapsed")
+            with cols[3]:
+                st.markdown(f"<div style='text-align:center; padding: 10px; background-color: #f8f9fa; border-radius: 4px; margin: 5px 0;'>{base_case_val:.3f}</div>", unsafe_allow_html=True)
+            with cols[4]:
+                upside = st.number_input("Upside", value=float(base_case_val), key=f"up_{i}", label_visibility="collapsed")
+        event_params.append({'downside': float(downside), 'upside': float(upside), 'dist_type': dist_type, 'base_case': base_case_val})
 
-
-for i in range(1, 16):
-    base_case_val = clean_number(row.get(f'Event{i}', 0.0))
+else:  # Consolidated Events
+    st.markdown("**Consolidated Event Factor Parameters**")
     with st.container():
         cols = st.columns([1, 1.5, 1.5, 1, 1.5])
         with cols[0]:
-            st.markdown(f"<div class='event-label'>Event {i}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='event-label'>All Events</div>", unsafe_allow_html=True)
         with cols[1]:
-            dist_type = st.selectbox("Distribution", distribution_options, key=f"dist_{i}", label_visibility="collapsed")
+            consolidated_dist_type = st.selectbox("Distribution", distribution_options, key="consolidated_dist", label_visibility="collapsed")
         with cols[2]:
-            downside = st.number_input("Downside", value=float(base_case_val), key=f"down_{i}", label_visibility="collapsed")
+            consolidated_downside = st.number_input("Downside", value=float(base_event_factors), key="consolidated_down", label_visibility="collapsed")
         with cols[3]:
-            st.markdown(f"<div style='text-align:center; padding: 10px; background-color: #f8f9fa; border-radius: 4px; margin: 5px 0;'>{base_case_val:.3f}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align:center; padding: 10px; background-color: #f8f9fa; border-radius: 4px; margin: 5px 0;'>{base_event_factors:.3f}</div>", unsafe_allow_html=True)
         with cols[4]:
-            upside = st.number_input("Upside", value=float(base_case_val), key=f"up_{i}", label_visibility="collapsed")
-    event_params.append({'downside': float(downside), 'upside': float(upside), 'dist_type': dist_type, 'base_case': base_case_val})
+            consolidated_upside = st.number_input("Upside", value=float(base_event_factors), key="consolidated_up", label_visibility="collapsed")
+    
+    # Store consolidated params in same format for compatibility
+    consolidated_params = {'downside': float(consolidated_downside), 'upside': float(consolidated_upside), 'dist_type': consolidated_dist_type, 'base_case': base_event_factors}
 
 st.header("Other Parameters")
 
@@ -183,7 +217,7 @@ st.markdown("""
 </table>
 """, unsafe_allow_html=True)
 
-def styled_param_row(label, base_case_val, default_down, default_up, dist_key, down_key, up_key):
+def styled_param_row(label, base_case_val, default_down, default_up, dist_key, down_key, up_key, step=0.01):
     dist_options = ['uniform', 'normal', 'triangular', 'lognormal']
     with st.container():
         cols = st.columns([1, 1.5, 1.5, 1, 1.5])
@@ -192,11 +226,11 @@ def styled_param_row(label, base_case_val, default_down, default_up, dist_key, d
         with cols[1]:
             dist_type = st.selectbox("Distribution", dist_options, key=dist_key, label_visibility="collapsed")
         with cols[2]:
-            downside = st.number_input("Downside", value=float(base_case_val), key=down_key, label_visibility="collapsed")
+            downside = st.number_input("Downside", value=float(base_case_val), key=down_key, label_visibility="collapsed", step=step)
         with cols[3]:
             st.markdown(f"<div style='text-align:center; padding: 10px; background-color: #f8f9fa; border-radius: 4px; margin: 5px 0;'>{base_case_val:.3f}</div>", unsafe_allow_html=True)
         with cols[4]:
-            upside = st.number_input("Upside", value=float(base_case_val), key=up_key, label_visibility="collapsed")
+            upside = st.number_input("Upside", value=float(base_case_val), key=up_key, label_visibility="collapsed", step=step)
     return {'downside': float(downside), 'upside': float(upside), 'dist_type': dist_type, 'base_case': base_case_val}
 
 other_params = {}
@@ -205,13 +239,17 @@ other_params['ClassShare'] = styled_param_row(
 other_params['ProductShare'] = styled_param_row(
     'ProductShare', base_product_share, base_product_share, base_product_share, 'dist_productshare', 'down_productshare', 'up_productshare')
 other_params['GrossPrice'] = styled_param_row(
-    'GrossPrice', base_gross_price, base_gross_price, base_gross_price, 'dist_grossprice', 'down_grossprice', 'up_grossprice')
+    'GrossPrice', base_gross_price, base_gross_price, base_gross_price, 'dist_grossprice', 'down_grossprice', 'up_grossprice', step=1.0)
 other_params['GTN'] = styled_param_row(
     'GTN', base_gtn, base_gtn, base_gtn, 'dist_gtn', 'down_gtn', 'up_gtn')
 
 if st.button("Run Simulation"):
     # Store individual event factors and other variables
-    individual_events = [[] for _ in range(15)]  # List for each of 15 events
+    if event_simulation_mode == "Individual Events":
+        individual_events = [[] for _ in range(15)]  # List for each of 15 events
+    else:
+        consolidated_events = []  # List for consolidated events
+    
     class_share_list = []
     product_share_list = []
     gross_price_list = []
@@ -220,19 +258,35 @@ if st.button("Run Simulation"):
 
     for _ in range(int(n_simulations)):
         event_factors = 0
-        for idx, event_param in enumerate(event_params):
-            event_value = sample_from_distribution(
-                dist_type=event_param['dist_type'],
-                low=event_param['downside'], 
-                high=event_param['upside'],
-                mean=(event_param['downside'] + event_param['upside']) / 2,
-                std=(event_param['upside'] - event_param['downside']) / 6,
-                left=event_param['downside'], 
-                mode=(event_param['downside'] + event_param['upside']) / 2, 
-                right=event_param['upside']
+        
+        if event_simulation_mode == "Individual Events":
+            # Simulate each event individually
+            for idx, event_param in enumerate(event_params):
+                event_value = sample_from_distribution(
+                    dist_type=event_param['dist_type'],
+                    low=event_param['downside'], 
+                    high=event_param['upside'],
+                    mean=(event_param['downside'] + event_param['upside']) / 2,
+                    std=(event_param['upside'] - event_param['downside']) / 6,
+                    left=event_param['downside'], 
+                    mode=(event_param['downside'] + event_param['upside']) / 2, 
+                    right=event_param['upside']
+                )
+                individual_events[idx].append(event_value)  # Store individual event
+                event_factors += event_value  # Sum for calculation
+        else:
+            # Simulate consolidated events
+            event_factors = sample_from_distribution(
+                dist_type=consolidated_params['dist_type'],
+                low=consolidated_params['downside'], 
+                high=consolidated_params['upside'],
+                mean=(consolidated_params['downside'] + consolidated_params['upside']) / 2,
+                std=(consolidated_params['upside'] - consolidated_params['downside']) / 6,
+                left=consolidated_params['downside'], 
+                mode=(consolidated_params['downside'] + consolidated_params['upside']) / 2, 
+                right=consolidated_params['upside']
             )
-            individual_events[idx].append(event_value)  # Store individual event
-            event_factors += event_value  # Sum for calculation
+            consolidated_events.append(event_factors)
 
         class_share = sample_from_distribution(
             dist_type=other_params['ClassShare']['dist_type'],
@@ -345,28 +399,41 @@ if st.button("Run Simulation"):
     plt.tight_layout()
     st.pyplot(fig)
     
-    # Plot Individual Event Distributions
-    st.subheader("Individual Event Factor Distributions")
-    
-    # Create a large subplot grid for all 15 events
-    fig, axes = plt.subplots(5, 3, figsize=(18, 20))
-    axes = axes.flatten()
-    
-    for i in range(15):
-        if len(individual_events[i]) > 0:  # Only plot if there's data
-            base_case_event = clean_number(row.get(f'Event{i+1}', 0.0))
-            sns.histplot(individual_events[i], kde=True, bins=20, ax=axes[i], alpha=0.7)
-            axes[i].axvline(base_case_event, color='red', linestyle='--', linewidth=2, label=f'Base: {base_case_event:.3f}')
-            axes[i].set_title(f'Event {i+1} Distribution')
-            axes[i].set_xlabel(f'Event {i+1} Factor')
-            axes[i].legend()
-            axes[i].grid(True, alpha=0.3)
-        else:
-            axes[i].text(0.5, 0.5, f'Event {i+1}\nNo variation', ha='center', va='center', transform=axes[i].transAxes)
-            axes[i].set_title(f'Event {i+1} (No variation)')
-    
-    plt.tight_layout()
-    st.pyplot(fig)
+    # Plot Individual Event Distributions (only for Individual Events mode)
+    if event_simulation_mode == "Individual Events":
+        st.subheader("Individual Event Factor Distributions")
+        
+        # Create a large subplot grid for all 15 events
+        fig, axes = plt.subplots(5, 3, figsize=(18, 20))
+        axes = axes.flatten()
+        
+        for i in range(15):
+            if len(individual_events[i]) > 0:  # Only plot if there's data
+                base_case_event = clean_number(row.get(f'Event{i+1}', 0.0))
+                sns.histplot(individual_events[i], kde=True, bins=20, ax=axes[i], alpha=0.7)
+                axes[i].axvline(base_case_event, color='red', linestyle='--', linewidth=2, label=f'Base: {base_case_event:.3f}')
+                axes[i].set_title(f'Event {i+1} Distribution')
+                axes[i].set_xlabel(f'Event {i+1} Factor')
+                axes[i].legend()
+                axes[i].grid(True, alpha=0.3)
+            else:
+                axes[i].text(0.5, 0.5, f'Event {i+1}\nNo variation', ha='center', va='center', transform=axes[i].transAxes)
+                axes[i].set_title(f'Event {i+1} (No variation)')
+        
+        plt.tight_layout()
+        st.pyplot(fig)
+    else:
+        # Plot Consolidated Event Distribution
+        st.subheader("Consolidated Event Factor Distribution")
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.histplot(consolidated_events, kde=True, bins=30, color='orange', alpha=0.7, ax=ax)
+        ax.axvline(base_event_factors, color='red', linestyle='--', linewidth=2, label=f'Base: {base_event_factors:.3f}')
+        ax.set_title('Consolidated Event Factor Distribution')
+        ax.set_xlabel('Event Factor')
+        ax.set_ylabel('Frequency')
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+        st.pyplot(fig)
     
     # Summary Statistics Table
     st.subheader("Summary Statistics for Main Variables")
@@ -383,17 +450,32 @@ if st.button("Run Simulation"):
     summary_df = summary_df.round(3)
     st.dataframe(summary_df, use_container_width=True)
     
-    # Individual Events Summary Table
-    st.subheader("Individual Event Factors Summary")
-    event_summary_data = {
-        'Event': [f'Event {i+1}' for i in range(15)],
-        'Base Case': [clean_number(row.get(f'Event{i+1}', 0.0)) for i in range(15)],
-        'Mean': [np.mean(individual_events[i]) if len(individual_events[i]) > 0 else 0.0 for i in range(15)],
-        'Std Dev': [np.std(individual_events[i]) if len(individual_events[i]) > 0 else 0.0 for i in range(15)],
-        '2.5%': [np.percentile(individual_events[i], 2.5) if len(individual_events[i]) > 0 else 0.0 for i in range(15)],
-        '97.5%': [np.percentile(individual_events[i], 97.5) if len(individual_events[i]) > 0 else 0.0 for i in range(15)]
-    }
-    
-    event_summary_df = pd.DataFrame(event_summary_data)
-    event_summary_df = event_summary_df.round(4)
-    st.dataframe(event_summary_df, use_container_width=True)
+    # Event Summary Table (conditional based on mode)
+    if event_simulation_mode == "Individual Events":
+        st.subheader("Individual Event Factors Summary")
+        event_summary_data = {
+            'Event': [f'Event {i+1}' for i in range(15)],
+            'Base Case': [clean_number(row.get(f'Event{i+1}', 0.0)) for i in range(15)],
+            'Mean': [np.mean(individual_events[i]) if len(individual_events[i]) > 0 else 0.0 for i in range(15)],
+            'Std Dev': [np.std(individual_events[i]) if len(individual_events[i]) > 0 else 0.0 for i in range(15)],
+            '2.5%': [np.percentile(individual_events[i], 2.5) if len(individual_events[i]) > 0 else 0.0 for i in range(15)],
+            '97.5%': [np.percentile(individual_events[i], 97.5) if len(individual_events[i]) > 0 else 0.0 for i in range(15)]
+        }
+        
+        event_summary_df = pd.DataFrame(event_summary_data)
+        event_summary_df = event_summary_df.round(4)
+        st.dataframe(event_summary_df, use_container_width=True)
+    else:
+        st.subheader("Consolidated Event Factor Summary")
+        consolidated_summary_data = {
+            'Event': ['Consolidated Events'],
+            'Base Case': [base_event_factors],
+            'Mean': [np.mean(consolidated_events)],
+            'Std Dev': [np.std(consolidated_events)],
+            '2.5%': [np.percentile(consolidated_events, 2.5)],
+            '97.5%': [np.percentile(consolidated_events, 97.5)]
+        }
+        
+        consolidated_summary_df = pd.DataFrame(consolidated_summary_data)
+        consolidated_summary_df = consolidated_summary_df.round(4)
+        st.dataframe(consolidated_summary_df, use_container_width=True)
