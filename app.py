@@ -97,7 +97,7 @@ st.markdown(f"- GTN: `{base_gtn:,.2f}`")
 # User inputs
 n_simulations = st.selectbox(
     "Number of Iterations (Simulations)",
-    options=[1000, 10000, 50000, 100000],
+    options=[1000, 10_000, 100_000, 1_000_000],
     index=1
 )
 
