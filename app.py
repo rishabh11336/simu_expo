@@ -145,9 +145,9 @@ event_params = []
 distribution_options = ['uniform', 'normal', 'triangular', 'lognormal']
 
 
+
 for i in range(1, 16):
     base_case_val = clean_number(row.get(f'Event{i}', 0.0))
-    # Create a container for each row
     with st.container():
         cols = st.columns([1, 1.5, 1.5, 1, 1.5])
         with cols[0]:
@@ -155,12 +155,12 @@ for i in range(1, 16):
         with cols[1]:
             dist_type = st.selectbox("Distribution", distribution_options, key=f"dist_{i}", label_visibility="collapsed")
         with cols[2]:
-            downside = st.number_input("Downside", value=base_case_val, key=f"down_{i}", label_visibility="collapsed")
+            downside = st.number_input("Downside", value=float(base_case_val), key=f"down_{i}", label_visibility="collapsed")
         with cols[3]:
             st.markdown(f"<div style='text-align:center; padding: 10px; background-color: #f8f9fa; border-radius: 4px; margin: 5px 0;'>{base_case_val:.3f}</div>", unsafe_allow_html=True)
         with cols[4]:
-            upside = st.number_input("Upside", value=base_case_val, key=f"up_{i}", label_visibility="collapsed")
-    event_params.append({'downside': downside, 'upside': upside, 'dist_type': dist_type, 'base_case': base_case_val})
+            upside = st.number_input("Upside", value=float(base_case_val), key=f"up_{i}", label_visibility="collapsed")
+    event_params.append({'downside': float(downside), 'upside': float(upside), 'dist_type': dist_type, 'base_case': base_case_val})
 
 st.header("Other Parameters")
 
@@ -186,12 +186,12 @@ def styled_param_row(label, base_case_val, default_down, default_up, dist_key, d
         with cols[1]:
             dist_type = st.selectbox("Distribution", dist_options, key=dist_key, label_visibility="collapsed")
         with cols[2]:
-            downside = st.number_input("Downside", value=base_case_val, key=down_key, label_visibility="collapsed")
+            downside = st.number_input("Downside", value=float(base_case_val), key=down_key, label_visibility="collapsed")
         with cols[3]:
             st.markdown(f"<div style='text-align:center; padding: 10px; background-color: #f8f9fa; border-radius: 4px; margin: 5px 0;'>{base_case_val:.3f}</div>", unsafe_allow_html=True)
         with cols[4]:
-            upside = st.number_input("Upside", value=base_case_val, key=up_key, label_visibility="collapsed")
-    return {'downside': downside, 'upside': upside, 'dist_type': dist_type, 'base_case': base_case_val}
+            upside = st.number_input("Upside", value=float(base_case_val), key=up_key, label_visibility="collapsed")
+    return {'downside': float(downside), 'upside': float(upside), 'dist_type': dist_type, 'base_case': base_case_val}
 
 other_params = {}
 other_params['ClassShare'] = styled_param_row(
