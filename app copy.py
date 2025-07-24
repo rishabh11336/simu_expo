@@ -6,9 +6,9 @@ import seaborn as sns
 
 
 # Load the baseline trend data
-df = pd.read_excel('test.xlsx', sheet_name='Sheet2')
-# select the row which has maximum baseline trend
-row = df.loc[df['Final Baseline Trend'].idxmax()]
+df = pd.read_excel('test.xlsx', sheet_name='Sheet1')
+# select 5th index row
+row = df.iloc[5]
 
 print(row)
 
@@ -247,17 +247,16 @@ if st.button("Run Simulation"):
         individual_events = [[] for _ in range(15)]  # List for each of 15 events
     else:
         consolidated_events = []  # List for consolidated events
-
+    
     class_share_list = []
     product_share_list = []
     gross_price_list = []
     gtn_list = []
     results = []
-    actual_simulations = 0
 
-    for _ in range(int(n_simulations)): 
+    for _ in range(int(n_simulations)):
         event_factors = 0
-
+        
         if event_simulation_mode == "Individual Events":
             # Simulate each event individually
             for idx, event_param in enumerate(event_params):
@@ -316,64 +315,15 @@ if st.button("Run Simulation"):
 
         net_sales = calculate_net_sales(base_final_baseline_trend, event_factors, class_share, product_share, gross_price, gtn)
         results.append(net_sales)
-        actual_simulations += 1
 
     results = np.array(results)
     mean_sales = np.mean(results)
     median_sales = np.median(results)
     std_sales = np.std(results)
     p5 = np.percentile(results, 2.5)
-    p10 = np.percentile(results, 10)
-    p25 = np.percentile(results, 25)
-    p50 = np.percentile(results, 50)
-    p75 = np.percentile(results, 75)
-    p90 = np.percentile(results, 90)
     p95 = np.percentile(results, 97.5)
 
-    # --- Scaling factors for range forecast ---
-
-    # Calculate scaling factors for all percentiles
-    scaling_factors = {
-        'p5': p5 / base_net_sales if base_net_sales != 0 else 0,
-        'p10': p10 / base_net_sales if base_net_sales != 0 else 0,
-        'p25': p25 / base_net_sales if base_net_sales != 0 else 0,
-        'p50': p50 / base_net_sales if base_net_sales != 0 else 0,
-        'p75': p75 / base_net_sales if base_net_sales != 0 else 0,
-        'p90': p90 / base_net_sales if base_net_sales != 0 else 0,
-        'p95': p95 / base_net_sales if base_net_sales != 0 else 0,
-    }
-
-    # --- Use Sheet2 from test.xlsx to calculate base_forecasts for each row ---
-    df_sheet2 = pd.read_excel('test.xlsx', sheet_name='Sheet2')
-    # Calculate net sales for each row
-    def calc_row_net_sales(row):
-        def clean(val):
-            if isinstance(val, str):
-                return float(val.replace('$','').replace(',','').strip())
-            return float(val)
-        return calculate_net_sales(
-            clean(row['Final Baseline Trend']),
-            clean(row['Final Event Factor']),
-            clean(row['Class share']),
-            clean(row['Product Share']),
-            clean(row['Gross Price SKU 1']),
-            clean(row['GTN for SKU 1'])
-        )
-    base_forecasts = df_sheet2.apply(calc_row_net_sales, axis=1).values
-    months = np.arange(1, len(base_forecasts)+1)
-    # Apply MC scaling factors to base_forecasts for each percentile
-    p5_range = base_forecasts * scaling_factors['p5']
-    p10_range = base_forecasts * scaling_factors['p10']
-    p25_range = base_forecasts * scaling_factors['p25']
-    p50_range = base_forecasts * scaling_factors['p50']
-    p75_range = base_forecasts * scaling_factors['p75']
-    p90_range = base_forecasts * scaling_factors['p90']
-    p95_range = base_forecasts * scaling_factors['p95']
-
-    # ...existing code...
-
     st.subheader("Simulation Results")
-    st.write(f"Number of Simulations Run: {actual_simulations:,}")
     st.write(f"Mean Net Sales: {mean_sales:,.2f}")
     st.write(f"Median Net Sales: {median_sales:,.2f}")
     st.write(f"Std Dev: {std_sales:,.2f}")
@@ -518,76 +468,3 @@ if st.button("Run Simulation"):
         consolidated_summary_df = pd.DataFrame(consolidated_summary_data)
         consolidated_summary_df = consolidated_summary_df.round(4)
         st.dataframe(consolidated_summary_df, use_container_width=True)
-
-    # --- Range Forecast Fan Chart and Table (at the end) ---
-    st.subheader("Range Forecast")
-    st.write(f"Downside Scaling Factor (P5/Base): {scaling_factors['p5']:.3f}")
-    st.write(f"Upside Scaling Factor (P95/Base): {scaling_factors['p95']:.3f}")
-    st.write(f"P10 Scaling Factor: {scaling_factors['p10']:.3f}")
-    st.write(f"P25 Scaling Factor: {scaling_factors['p25']:.3f}")
-    st.write(f"P50 Scaling Factor: {scaling_factors['p50']:.3f}")
-    st.write(f"P75 Scaling Factor: {scaling_factors['p75']:.3f}")
-    st.write(f"P90 Scaling Factor: {scaling_factors['p90']:.3f}")
-
-    band_colors = {
-        '90': '#3B5BA9',  # blue
-        '50': '#BDBDBD',  # gray
-        '25': '#E57373',  # red
-        '10': '#FBC02D',  # yellow
-    }
-
-    fig, ax = plt.subplots(figsize=(18, 8))
-    fig.patch.set_facecolor('white')
-    ax.set_facecolor('white')
-
-    # 90% band
-    ax.fill_between(months, p10_range, p90_range, color=band_colors['90'], alpha=0.25, label='90%')
-    # 50% band
-    ax.fill_between(months, p25_range, p75_range, color=band_colors['50'], alpha=0.35, label='50%')
-    # Median/base
-    ax.plot(months, p50_range, color='green', linewidth=2, label='50% (Median)')
-    # 10% and 90% lines
-    ax.plot(months, p10_range, color=band_colors['10'], linestyle='-', linewidth=1.5, label='10%')
-    ax.plot(months, p90_range, color=band_colors['10'], linestyle='-', linewidth=1.5, label='90%')
-    # 25% and 75% lines
-    ax.plot(months, p25_range, color=band_colors['25'], linestyle='-', linewidth=1.5, label='25%')
-    ax.plot(months, p75_range, color=band_colors['25'], linestyle='-', linewidth=1.5, label='75%')
-    # P5 and P95 lines
-    ax.plot(months, p5_range, color='#FF5722', linestyle='--', linewidth=2, label='P5')
-    ax.plot(months, p95_range, color='#283593', linestyle='--', linewidth=2, label='P95')
-
-    from matplotlib.patches import Patch
-    legend_elements = [
-        Patch(facecolor=band_colors['90'], edgecolor='none', alpha=0.25, label='90% Certainty'),
-        Patch(facecolor=band_colors['50'], edgecolor='none', alpha=0.35, label='50% Certainty'),
-        Patch(facecolor=band_colors['25'], edgecolor='none', alpha=0.5, label='25% Certainty'),
-        Patch(facecolor='none', edgecolor='green', linewidth=2, label='Median (P50)'),
-        Patch(facecolor='none', edgecolor='#FF5722', linewidth=2, label='P5'),
-        Patch(facecolor='none', edgecolor='#283593', linewidth=2, label='P95'),
-    ]
-    ax.legend(loc='upper left', fontsize=13)
-
-    ax.set_xlabel('Month', fontsize=16, fontweight='bold')
-    ax.set_ylabel('Net Sales $Mn', fontsize=16, fontweight='bold')
-    ax.set_title('Forecast Trend', fontsize=20, fontweight='bold', color='#233366', pad=20)
-    ax.grid(True, alpha=0.2)
-    ax.tick_params(axis='both', which='major', labelsize=13)
-
-    # Remove top/right spines
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-
-    st.pyplot(fig)
-
-    range_df = pd.DataFrame({
-        'Month': months,
-        'P5': np.round(p5_range, 2),
-        'P10': np.round(p10_range, 2),
-        'P25': np.round(p25_range, 2),
-        'P50': np.round(p50_range, 2),
-        'P75': np.round(p75_range, 2),
-        'P90': np.round(p90_range, 2),
-        'P95': np.round(p95_range, 2)
-    })
-    st.subheader("Range Forecast Table (P5, P10, P25, P50, P75, P90, P95)")
-    st.dataframe(range_df, use_container_width=True)
