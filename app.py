@@ -48,12 +48,12 @@ def sample_from_distribution(dist_type, low=None, high=None, mean=None, std=None
         if left == mode == right:
             return left
         return np.random.triangular(left, mode, right)
-    elif dist_type == 'lognormal':
-        if not all_finite(mean, std):
-            return 0.0
-        if std == 0:
-            return np.exp(mean)
-        return np.random.lognormal(mean, std)
+    # lognormal removed
+    elif dist_type == 'discrete_uniform':
+        # Discrete random pick from downside, base_case, upside
+        # For this, low=downside, high=upside, mode=base_case
+        choices = [low, mode, high]
+        return np.random.choice(choices)
     else:
         raise ValueError(f"Unsupported distribution type: {dist_type}")
 
@@ -163,7 +163,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 event_params = []
-distribution_options = ['uniform', 'normal', 'triangular', 'lognormal']
+distribution_options = ['uniform', 'normal', 'triangular', 'discrete_uniform']
 
 if event_simulation_mode == "Individual Events":
     for i in range(1, 16):
@@ -216,7 +216,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def styled_param_row(label, base_case_val, default_down, default_up, dist_key, down_key, up_key, step=0.01):
-    dist_options = ['uniform', 'normal', 'triangular', 'lognormal']
+    dist_options = ['uniform', 'normal', 'triangular', 'discrete_uniform']
     with st.container():
         cols = st.columns([1, 1.5, 1.5, 1, 1.5])
         with cols[0]:
@@ -262,12 +262,12 @@ if st.button("Run Simulation"):
             for idx, event_param in enumerate(event_params):
                 event_value = sample_from_distribution(
                     dist_type=event_param['dist_type'],
-                    low=event_param['downside'], 
+                    low=event_param['downside'],
                     high=event_param['upside'],
                     mean=(event_param['downside'] + event_param['upside']) / 2,
                     std=(event_param['upside'] - event_param['downside']) / 6,
-                    left=event_param['downside'], 
-                    mode=(event_param['downside'] + event_param['upside']) / 2, 
+                    left=event_param['downside'],
+                    mode=event_param['base_case'],
                     right=event_param['upside']
                 )
                 individual_events[idx].append(event_value)  # Store individual event
@@ -276,50 +276,41 @@ if st.button("Run Simulation"):
             # Simulate consolidated events
             event_factors = sample_from_distribution(
                 dist_type=consolidated_params['dist_type'],
-                low=consolidated_params['downside'], 
+                low=consolidated_params['downside'],
                 high=consolidated_params['upside'],
                 mean=(consolidated_params['downside'] + consolidated_params['upside']) / 2,
                 std=(consolidated_params['upside'] - consolidated_params['downside']) / 6,
-                left=consolidated_params['downside'], 
-                mode=(consolidated_params['downside'] + consolidated_params['upside']) / 2, 
+                left=consolidated_params['downside'],
+                mode=consolidated_params['base_case'],
                 right=consolidated_params['upside']
             )
             consolidated_events.append(event_factors)
 
-        class_share = sample_from_distribution(
-            dist_type=other_params['ClassShare']['dist_type'],
-            low=other_params['ClassShare']['downside'], 
-            high=other_params['ClassShare']['upside'],
-            mean=(other_params['ClassShare']['downside'] + other_params['ClassShare']['upside']) / 2,
-            std=(other_params['ClassShare']['upside'] - other_params['ClassShare']['downside']) / 6
-        )
+        def safe_sample(param, base_case):
+            val = sample_from_distribution(
+                dist_type=param['dist_type'],
+                low=param['downside'],
+                high=param['upside'],
+                mean=(param['downside'] + param['upside']) / 2,
+                std=(param['upside'] - param['downside']) / 6,
+                left=param['downside'],
+                mode=param['base_case'],
+                right=param['upside']
+            )
+            if val is None or not isinstance(val, (int, float)) or np.isnan(val):
+                return base_case
+            return val
+
+        class_share = safe_sample(other_params['ClassShare'], base_class_share)
         class_share_list.append(class_share)
 
-        product_share = sample_from_distribution(
-            dist_type=other_params['ProductShare']['dist_type'],
-            low=other_params['ProductShare']['downside'], 
-            high=other_params['ProductShare']['upside'],
-            mean=(other_params['ProductShare']['downside'] + other_params['ProductShare']['upside']) / 2,
-            std=(other_params['ProductShare']['upside'] - other_params['ProductShare']['downside']) / 6
-        )
+        product_share = safe_sample(other_params['ProductShare'], base_product_share)
         product_share_list.append(product_share)
 
-        gross_price = sample_from_distribution(
-            dist_type=other_params['GrossPrice']['dist_type'],
-            low=other_params['GrossPrice']['downside'], 
-            high=other_params['GrossPrice']['upside'],
-            mean=(other_params['GrossPrice']['downside'] + other_params['GrossPrice']['upside']) / 2,
-            std=(other_params['GrossPrice']['upside'] - other_params['GrossPrice']['downside']) / 6
-        )
+        gross_price = safe_sample(other_params['GrossPrice'], base_gross_price)
         gross_price_list.append(gross_price)
 
-        gtn = sample_from_distribution(
-            dist_type=other_params['GTN']['dist_type'],
-            low=other_params['GTN']['downside'], 
-            high=other_params['GTN']['upside'],
-            mean=(other_params['GTN']['downside'] + other_params['GTN']['upside']) / 2,
-            std=(other_params['GTN']['upside'] - other_params['GTN']['downside']) / 6
-        )
+        gtn = safe_sample(other_params['GTN'], base_gtn)
         gtn_list.append(gtn)
 
         net_sales = calculate_net_sales(base_final_baseline_trend, event_factors, class_share, product_share, gross_price, gtn)
